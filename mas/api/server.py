@@ -307,7 +307,7 @@ class MASApiServer:
         from ..intelligence.mas_overview import build_mas_overview_payload
         from ..intelligence.equipment_predictive_models import model_catalog as pm_model_catalog
         from ..intelligence.snapshot_enrichment import enrich_snapshot_for_router
-        from ..domain.manufacturing_context import from_factory_snapshot
+        from ..domain.manufacturing_context import from_factory_snapshot, validate_context_dict
 
         settings = get_settings()
         control_matrix = build_control_payload(settings)
@@ -359,16 +359,20 @@ class MASApiServer:
             }
 
         mctx: Dict[str, Any] = {}
+        mctx_validation: List[str] = []
         if snap:
             try:
                 mctx = from_factory_snapshot(snap).to_dict()
+                mctx_validation = validate_context_dict(mctx)
             except Exception as e:
                 _log.debug("ManufacturingContext 변환 실패: %s", e)
                 mctx = {}
+                mctx_validation = [str(e)]
 
         return {
             "timestamp": time.time(),
             "manufacturing_context": mctx,
+            "manufacturing_context_validation": mctx_validation,
             "mas_overview": mas_overview,
             "collaboration_view": build_collaboration_payload(self._broker),
             "factory_coverage": build_factory_coverage_payload(),

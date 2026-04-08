@@ -87,6 +87,9 @@ class CNPSession:
         strategy["constraints_applied"] = True
         strategy["protocol_version"] = PROTOCOL_VERSION
         strategy["conversation_id"] = self.conversation_id
+        strategy["approval_required"] = (
+            sp < 70 or str(strategy.get("inspection_mode", "")).lower() in {"all", "full", "전수"}
+        )
         return strategy
 
     def to_cfp_body(self, situation_summary: str) -> Dict[str, Any]:

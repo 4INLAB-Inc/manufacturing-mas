@@ -281,6 +281,17 @@ sequenceDiagram
 
 ---
 
+## 14. 회귀 테스트 스모크 (추가)
+
+- **Monitoring 스키마 스모크**: `tests/test_monitoring_schema_smoke.py`  
+  - `MASApiServer._build_monitoring_payload()`의 필수 top-level 키(`manufacturing_context`, `control_matrix`, `agents`, `runtime` 등) 확인
+  - `json.dumps(..., allow_nan=False)`로 API 직렬화 안전성 점검
+- **CNP Golden 시나리오(결정론적)**: `tests/test_cnp_golden.py`  
+  - 고정 CFP 응답 세트로 PA의 랭킹/전략 회귀 검증 (`best_agent`, `target_speed_pct`, `protocol_version`)
+  - `operational_decision_card/v1` 포함 여부 및 수락 실행 훅 확인
+
+---
+
 ## 요약
 
 - **main** = 인터랙티브 공장 시뮬 + 선택적 웹 UI.  

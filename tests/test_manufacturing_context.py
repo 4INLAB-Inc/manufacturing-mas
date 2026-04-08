@@ -1,6 +1,11 @@
 """표준 제조 컨텍스트 어댑터 및 계약 v2."""
 
-from mas.domain import CONTEXT_CONTRACT_VERSION, from_factory_snapshot
+from mas.domain import (
+    CONTEXT_CONTRACT_VERSION,
+    build_agent_context_view,
+    from_factory_snapshot,
+    validate_context_dict,
+)
 from mas.domain.manufacturing_context import IdentifierContract, TemporalAxes
 from mas.domain.plant_data_model import DEFAULT_LINE_ID, DEFAULT_SITE_ID
 
@@ -166,3 +171,35 @@ def test_factory_snapshot_integration():
     assert ctx.identifiers.plant_id
     assert ctx.identifiers.cell_id
     assert ctx.kpi_slices.line.get("avg_oee") is not None or snap.get("avg_oee") is not None
+
+
+def test_context_validation_and_agent_view():
+    snap = {
+        "plant": {
+            "schema_version": "2.0",
+            "site_id": "S1",
+            "plant_id": "P1",
+            "line_id": "L1",
+            "cell_id": "C1",
+            "sim_time_sec": 2.0,
+            "logical_clock_cycle": 4,
+        },
+        "cycle": 4,
+        "shift": "DAY",
+        "avg_oee": 0.8,
+        "fg_stock": 2,
+        "total_produced": 8,
+        "scrap_count": 0,
+        "rework_count": 0,
+        "stations": {"WC-01": {"station_id": "WC-01", "state": "RUN"}},
+        "materials": {"SKU-A": {"stock": 5}},
+        "orders": [],
+        "wip": [],
+    }
+    payload = from_factory_snapshot(snap).to_dict()
+    assert validate_context_dict(payload) == []
+    pa_view = build_agent_context_view(payload, "PA")
+    assert pa_view["role_focus"]["line_kpi"]["avg_oee"] == 0.8
+    ea_view = build_agent_context_view(payload, "EA")
+    assert "station_health" in ea_view["role_focus"]
+    assert ea_view["contract_validation"] == []

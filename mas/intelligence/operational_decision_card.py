@@ -50,6 +50,7 @@ def empty_card(reason: str = "no_data") -> Dict[str, Any]:
         "owner_role": "PA",
         "review_at": "",
         "evidence_refs": {},
+        "recommended_actions": [],
     }
 
 
@@ -104,4 +105,6 @@ def from_cnp_strategy(
         review_at=f"cycle+10",
         evidence_refs={"cnp_id": strategy.get("cnp_id"), "best_agent": best.get("agent")},
     )
-    return card.to_dict()
+    out = card.to_dict()
+    out["recommended_actions"] = out.get("responses", [])
+    return out

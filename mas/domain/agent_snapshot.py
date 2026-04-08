@@ -22,13 +22,16 @@ def enrich_snapshot_for_agents(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(out, dict):
         return out
 
-    from .manufacturing_context import from_factory_snapshot
+    from .manufacturing_context import from_factory_snapshot, validate_context_dict
 
     ingest = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     try:
         mctx = from_factory_snapshot(snapshot, ingest_time_utc_iso=ingest)
-        out["manufacturing_context"] = mctx.to_dict()
+        mctx_dict = mctx.to_dict()
+        out["manufacturing_context"] = mctx_dict
+        out["manufacturing_context_validation"] = validate_context_dict(mctx_dict)
     except Exception:
         out["manufacturing_context"] = {"contract_version": "error", "error": "adapter_failed"}
+        out["manufacturing_context_validation"] = ["adapter_failed"]
 
     return out

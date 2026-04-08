@@ -312,7 +312,9 @@ flowchart LR
 - [x] **PA 내부 모듈:** `mas/agents/planning_sub/` (collector, ranker, evaluator, reporter 패턴).  
 - [x] **LLM 감사 로그:** `LLMClient.audit_log` + `_audit()` (`mas/intelligence/llm.py`).  
 - [x] **테스트 보강:** `tests/test_roadmap_integration.py`, E2E 등 (pytest 수집 약 48개).  
-- [ ] **남은 과제:** 제약 온톨로지·계층 PA·RAG·어댑터 실연동(현재 `mas/adapters/`는 Protocol 스텁), CNP golden 대규모 시나리오, monitoring 스키마 스모크 자동화.
+- [ ] **남은 과제:** 제약 온톨로지·계층 PA·RAG·어댑터 실연동(현재 `mas/adapters/`는 Protocol 스텁).
+- [x] **CNP golden 테스트(1차):** `tests/test_cnp_golden.py` — 결정론적 CFP 응답으로 제안 랭킹·전략 필드·운영 카드 스키마 회귀 검증.
+- [x] **monitoring 스키마 스모크 자동화(1차):** `tests/test_monitoring_schema_smoke.py` — `_build_monitoring_payload()` 필수 키·JSON 직렬화(`allow_nan=False`) 스모크.
 
 ---
 

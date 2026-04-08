@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from .plant_data_model import (
     DEFAULT_CELL_ID,
@@ -25,6 +25,23 @@ from .plant_data_model import (
 # ── 계약 메타 ─────────────────────────────────────────────────────
 
 CONTEXT_CONTRACT_VERSION = "2.0"
+CONTEXT_REQUIRED_SECTIONS = (
+    "contract_version",
+    "identifiers",
+    "temporal",
+    "kpi_slices",
+    "plant",
+    "summary",
+)
+
+ROLE_CONTEXT_FIELDS = {
+    "EA": ("plant", "identifiers", "temporal", "summary", "kpi_slices"),
+    "QA": ("plant", "identifiers", "temporal", "summary", "kpi_slices"),
+    "SA": ("plant", "identifiers", "temporal", "summary", "kpi_slices"),
+    "DA": ("plant", "identifiers", "temporal", "summary", "kpi_slices"),
+    "IA": ("plant", "identifiers", "temporal", "summary", "kpi_slices"),
+    "PA": ("plant", "identifiers", "temporal", "summary", "kpi_slices", "meta"),
+}
 
 
 @dataclass(frozen=True)
@@ -158,6 +175,9 @@ class ManufacturingContext:
             "summary": asdict(self.summary),
             "meta": dict(self.meta),
         }
+
+    def validate(self) -> List[str]:
+        return validate_context_dict(self.to_dict())
 
 
 def from_factory_snapshot(
@@ -308,6 +328,82 @@ def from_factory_snapshot(
         summary=summary,
         meta=meta,
     )
+
+
+def validate_context_dict(payload: Dict[str, Any]) -> List[str]:
+    """Return contract validation errors. Empty list means the contract is usable."""
+    errors: List[str] = []
+    if not isinstance(payload, dict):
+        return ["context must be a dict"]
+
+    for key in CONTEXT_REQUIRED_SECTIONS:
+        if key not in payload:
+            errors.append(f"missing section: {key}")
+
+    if payload.get("contract_version") != CONTEXT_CONTRACT_VERSION:
+        errors.append(
+            f"unsupported contract_version: {payload.get('contract_version')!r}"
+        )
+
+    identifiers = payload.get("identifiers")
+    if not isinstance(identifiers, dict):
+        errors.append("identifiers must be an object")
+    else:
+        for key in ("site_id", "plant_id", "line_id", "cell_id", "shift_code"):
+            if not identifiers.get(key):
+                errors.append(f"identifiers.{key} is required")
+        for seq_key in ("station_ids", "equipment_ids", "material_skus", "lot_ids", "order_ids"):
+            if not isinstance(identifiers.get(seq_key), list):
+                errors.append(f"identifiers.{seq_key} must be a list")
+
+    temporal = payload.get("temporal")
+    if not isinstance(temporal, dict):
+        errors.append("temporal must be an object")
+    elif "logical_clock_cycle" not in temporal:
+        errors.append("temporal.logical_clock_cycle is required")
+
+    kpi_slices = payload.get("kpi_slices")
+    if not isinstance(kpi_slices, dict):
+        errors.append("kpi_slices must be an object")
+    else:
+        for key in ("line", "by_station", "by_shift", "by_sku"):
+            if not isinstance(kpi_slices.get(key), dict):
+                errors.append(f"kpi_slices.{key} must be an object")
+
+    return errors
+
+
+def build_agent_context_view(
+    payload: Dict[str, Any],
+    agent_id: str,
+    *,
+    include_validation: bool = True,
+) -> Dict[str, Any]:
+    """Return a role-scoped stable view while preserving the contract backbone."""
+    fields: Sequence[str] = ROLE_CONTEXT_FIELDS.get(agent_id, CONTEXT_REQUIRED_SECTIONS)
+    view = {key: payload.get(key) for key in fields if key in payload}
+    kpi_slices = payload.get("kpi_slices") if isinstance(payload.get("kpi_slices"), dict) else {}
+    by_station = kpi_slices.get("by_station") if isinstance(kpi_slices.get("by_station"), dict) else {}
+    by_sku = kpi_slices.get("by_sku") if isinstance(kpi_slices.get("by_sku"), dict) else {}
+
+    focus: Dict[str, Any] = {}
+    if agent_id == "EA":
+        focus["station_health"] = by_station
+    elif agent_id == "QA":
+        focus["quality_hotspots"] = by_station
+    elif agent_id in ("SA", "IA"):
+        focus["material_buffers"] = by_sku
+    elif agent_id == "DA":
+        focus["delivery_summary"] = payload.get("summary")
+    elif agent_id == "PA":
+        focus["line_kpi"] = kpi_slices.get("line") if isinstance(kpi_slices, dict) else {}
+        focus["stations"] = by_station
+        focus["materials"] = by_sku
+
+    view["role_focus"] = focus
+    if include_validation:
+        view["contract_validation"] = validate_context_dict(payload)
+    return view
 
 
 def _station_kpi_slice(station_row: Dict[str, Any]) -> Dict[str, Any]:
