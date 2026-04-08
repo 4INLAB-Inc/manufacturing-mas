@@ -34,6 +34,14 @@ class PlantOrchestrator:
             "line_schedule": line_view,
             "cell_status": cell_view,
             "local_actions": self.cell_coordinator.collect_local_actions(agent_statuses),
+            "event_driven_control": {
+                "recent_events": list(
+                    (manufacturing_context or {}).get("recent_events") or []
+                )[-10:],
+                "external_inputs": dict(
+                    (manufacturing_context or {}).get("external_inputs") or {}
+                ),
+            },
         }
 
     def issue_decision_packet(
@@ -55,4 +63,5 @@ class PlantOrchestrator:
                 else None
             ),
             "requires_approval": bool(strategy.get("approval_required")),
+            "trigger_event": strategy.get("trigger_event"),
         }

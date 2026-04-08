@@ -467,6 +467,20 @@ class MASApiServer:
             "llm": self._llm.get_status() if self._llm else {"enabled": False},
             "decision_router": dr_status,
             "external_connectors": build_connector_status(settings),
+            "event_runtime": (
+                rt.get_event_runtime_status()
+                if rt and getattr(rt, "get_event_runtime_status", None)
+                else {
+                    "runtime_mode": settings.runtime_mode,
+                    "connector_poll_sec": settings.connector_poll_sec,
+                    "event_dispatch_sec": settings.event_dispatch_sec,
+                    "recovery": {},
+                    "event_store": {},
+                    "command_queue": {},
+                    "connector_status": build_connector_status(settings),
+                    "state_store": {},
+                }
+            ),
             "coordination_layer": (
                 rt.get_coordination_status()
                 if rt and getattr(rt, "get_coordination_status", None)

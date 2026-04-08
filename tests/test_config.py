@@ -13,6 +13,9 @@ def _build_settings(**overrides):
         "cors_origins": "*",
         "llm_router_scope": "pa_only",
         "llm_per_agent_assist": False,
+        "runtime_mode": "hybrid",
+        "connector_poll_sec": 5.0,
+        "event_dispatch_sec": 0.5,
         "connector_mode": "sample",
         "mes_file_path": "",
         "erp_file_path": "",
@@ -35,11 +38,17 @@ def test_settings_cors_methods():
 
 def test_settings_exposes_connector_fields():
     s = _build_settings(
+        runtime_mode="event",
         connector_mode="file",
+        connector_poll_sec=2.5,
+        event_dispatch_sec=0.2,
         mes_file_path="data/mes.json",
         erp_file_path="data/erp.json",
         qms_file_path="data/qms.json",
     )
+    assert s.runtime_mode == "event"
+    assert s.connector_poll_sec == 2.5
+    assert s.event_dispatch_sec == 0.2
     assert s.connector_mode == "file"
     assert s.mes_file_path.endswith("mes.json")
     assert s.erp_file_path.endswith("erp.json")

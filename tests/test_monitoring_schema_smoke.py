@@ -58,6 +58,7 @@ def test_monitoring_payload_schema_smoke():
         "llm",
         "decision_router",
         "external_connectors",
+        "event_runtime",
         "coordination_layer",
         "runtime",
     }
@@ -82,6 +83,14 @@ def test_monitoring_payload_schema_smoke():
     connectors = payload["external_connectors"]
     assert connectors["mode"] in {"off", "sample", "file", "rest"}
     assert {"mes", "erp", "qms"}.issubset(connectors.keys())
+
+    event_runtime = payload["event_runtime"]
+    assert event_runtime["runtime_mode"] in {"cycle", "hybrid", "event"}
+    assert "recovery" in event_runtime
+    assert "event_store" in event_runtime
+    assert "command_queue" in event_runtime
+    assert "connector_status" in event_runtime
+    assert "state_store" in event_runtime
 
     coordination = payload["coordination_layer"]
     assert isinstance(coordination, dict)

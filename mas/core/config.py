@@ -8,6 +8,7 @@ from typing import List, Optional
 
 _VALID_LLM_ROUTER_SCOPES = frozenset({"pa_only", "all_gated"})
 _VALID_CONNECTOR_MODES = frozenset({"off", "sample", "file", "rest"})
+_VALID_RUNTIME_MODES = frozenset({"cycle", "hybrid", "event"})
 
 
 def _resolve_dotenv_path() -> Optional[Path]:
@@ -57,6 +58,9 @@ class Settings:
     cors_origins: str
     llm_router_scope: str
     llm_per_agent_assist: bool
+    runtime_mode: str
+    connector_poll_sec: float
+    event_dispatch_sec: float
     connector_mode: str
     mes_file_path: str
     erp_file_path: str
@@ -105,6 +109,9 @@ def _build_settings() -> Settings:
     scope = (os.environ.get(prefix + "LLM_ROUTER_SCOPE", "pa_only") or "pa_only").strip().lower()
     if scope not in _VALID_LLM_ROUTER_SCOPES:
         scope = "pa_only"
+    runtime_mode = (os.environ.get(prefix + "RUNTIME_MODE", "hybrid") or "hybrid").strip().lower()
+    if runtime_mode not in _VALID_RUNTIME_MODES:
+        runtime_mode = "hybrid"
     connector_mode = (os.environ.get(prefix + "CONNECTOR_MODE", "sample") or "sample").strip().lower()
     if connector_mode not in _VALID_CONNECTOR_MODES:
         connector_mode = "sample"
@@ -119,6 +126,9 @@ def _build_settings() -> Settings:
         cors_origins=os.environ.get(prefix + "CORS_ORIGINS", "*").strip() or "*",
         llm_router_scope=scope,
         llm_per_agent_assist=_get_env_bool(prefix + "LLM_PER_AGENT_ASSIST", False),
+        runtime_mode=runtime_mode,
+        connector_poll_sec=_get_env_float(prefix + "CONNECTOR_POLL_SEC", 5.0),
+        event_dispatch_sec=_get_env_float(prefix + "EVENT_DISPATCH_SEC", 0.5),
         connector_mode=connector_mode,
         mes_file_path=os.environ.get(prefix + "MES_FILE_PATH", "").strip(),
         erp_file_path=os.environ.get(prefix + "ERP_FILE_PATH", "").strip(),
